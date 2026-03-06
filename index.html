@@ -155,11 +155,15 @@
                     <div class="input-group mb-15">
                         <select id="input-item-category" class="select-input" required>
                             <option value="sonstiges">Sonstiges</option>
-                            <option value="obst">Obst & Gemüse</option>
+                            <option value="obst">Obst &amp; Gemüse</option>
                             <option value="kuehl">Kühlregal</option>
                             <option value="trocken">Trockensortiment</option>
                             <option value="getraenke">Getränke</option>
+                            <option value="__custom__">✏️ Eigene Kategorie...</option>
                         </select>
+                    </div>
+                    <div class="input-group mb-15" id="custom-category-group" style="display: none;">
+                        <input type="text" id="input-custom-category" placeholder="Neue Kategorie benennen" style="flex-grow: 1;" autocomplete="off">
                     </div>
                     <button type="submit" class="btn-primary full-width">Auf die Liste</button>
                 </form>

@@ -17,6 +17,18 @@ const inputItemAmount = document.getElementById('input-item-amount');
 const inputItemCategory = document.getElementById('input-item-category');
 const btnCloseAddModal = document.getElementById('btn-close-add-modal');
 const btnClearList = document.getElementById('btn-clear-list');
+const customCategoryGroup = document.getElementById('custom-category-group');
+const inputCustomCategory = document.getElementById('input-custom-category');
+
+// Show/hide custom category input
+inputItemCategory.addEventListener('change', () => {
+    if (inputItemCategory.value === '__custom__') {
+        customCategoryGroup.style.display = 'flex';
+        inputCustomCategory.focus();
+    } else {
+        customCategoryGroup.style.display = 'none';
+    }
+});
 
 // Settings & Theme
 const btnOpenSettings = document.getElementById('btn-open-settings');
@@ -173,7 +185,41 @@ if (categoryFiltersContainer) {
 // -------------------------------------------------------------
 async function loadShoppingList() {
     currentShoppingList = await db.getShoppingList();
+    updateDynamicFilterChips();
     renderShoppingList();
+}
+
+// Adds filter chips for any custom categories found in the list data
+const knownCategories = new Set(['all', 'obst', 'kuehl', 'trocken', 'getraenke', 'sonstiges']);
+
+function updateDynamicFilterChips() {
+    if (!categoryFiltersContainer) return;
+    
+    currentShoppingList.forEach(item => {
+        if (!item.category) return;
+        if (knownCategories.has(item.category)) return; // Skip built-in categories
+        
+        // Check if a chip for this category already exists
+        const exists = categoryFiltersContainer.querySelector(`[data-cat="${item.category}"]`);
+        if (exists) return;
+        
+        // Create a new chip
+        const chip = document.createElement('button');
+        chip.className = 'filter-chip';
+        chip.setAttribute('data-cat', item.category);
+        // Display name: replace underscores with spaces, capitalize
+        chip.textContent = item.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        
+        chip.addEventListener('click', () => {
+            categoryFiltersContainer.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            activeCategoryFilter = item.category;
+            renderShoppingList();
+        });
+        
+        categoryFiltersContainer.appendChild(chip);
+        knownCategories.add(item.category); // Track so we don't add it twice
+    });
 }
 
 function renderShoppingList() {
@@ -381,16 +427,35 @@ formAddItem.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = inputItemName.value.trim();
     const amount = inputItemAmount.value.trim();
-    const category = inputItemCategory.value || 'sonstiges';
+    
+    // Resolve category: use custom input if selected, otherwise use the select value
+    let category = inputItemCategory.value;
+    if (category === '__custom__') {
+        const customVal = inputCustomCategory.value.trim();
+        category = customVal ? customVal.toLowerCase().replace(/\s+/g, '_') : 'sonstiges';
+        
+        // Add new option to the select dropdown for this session
+        const alreadyExists = Array.from(inputItemCategory.options).some(o => o.value === category);
+        if (!alreadyExists) {
+            const newOption = document.createElement('option');
+            newOption.value = category;
+            newOption.textContent = customVal;
+            // Insert before the "Eigene Kategorie..." option
+            const customOption = inputItemCategory.querySelector('option[value="__custom__"]');
+            inputItemCategory.insertBefore(newOption, customOption);
+        }
+    }
     
     if (name) {
         inputItemName.value = '';
         inputItemAmount.value = '';
+        inputItemCategory.value = 'sonstiges';
+        customCategoryGroup.style.display = 'none';
         modalAddItem.classList.remove('active');
         
         // Insert DB
         await db.addOrUpdateListItem(name, amount, category);
-        // Reload list
+        // Reload list (also refreshes filter chips with any new categories)
         await loadShoppingList();
     }
 });
