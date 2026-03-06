@@ -851,9 +851,41 @@ document.getElementById('form-create-recipe').addEventListener('submit', async (
 
 // Refresh on focus (rudimentary realtime)
 window.addEventListener('focus', () => {
-    // Falls ein Filter aktiv ist, aktualisiere die DB Werte
     loadData();
 });
+
+// -------------------------------------------------------------
+// Force Reload / Cache leeren
+// -------------------------------------------------------------
+const btnForceReload = document.getElementById('btn-force-reload');
+if (btnForceReload) {
+    btnForceReload.addEventListener('click', async () => {
+        btnForceReload.textContent = 'Wird geleert...';
+        btnForceReload.disabled = true;
+
+        try {
+            // 1. Alle Service Worker deregistrieren
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const reg of registrations) {
+                    await reg.unregister();
+                }
+            }
+
+            // 2. Alle Cache-Einträge löschen
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+            }
+
+            // 3. Seite komplett neu laden (kein Cache)
+            window.location.reload(true);
+        } catch (err) {
+            console.error('Force Reload Fehler:', err);
+            window.location.reload(true);
+        }
+    });
+}
 
 // Startup
 loadData();
