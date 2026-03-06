@@ -262,14 +262,16 @@ let currentActionLi = null;
 function setupLongPress(element, item) {
     let pressTimer;
     let isDragging = false;
+    let longPressTriggered = false;
     
     const start = (e) => {
-        if(e.type === 'click' && e.button !== 0) return; // Only process left clicks or touches
         // Don't trigger long press if clicking directly on the checkbox or drag handle
         if(e.target.closest('.item-checkbox') || e.target.closest('.drag-handle')) return;
         
         isDragging = false;
+        longPressTriggered = false;
         pressTimer = window.setTimeout(() => {
+            longPressTriggered = true;
             openItemActions(item, element);
         }, 500); // 500ms long press
     };
@@ -277,13 +279,21 @@ function setupLongPress(element, item) {
     const cancel = () => {
         clearTimeout(pressTimer);
     };
+    
+    // Suppress the click that fires after a long-press touchend
+    element.addEventListener('click', (e) => {
+        if (longPressTriggered) {
+            e.stopPropagation();
+            e.preventDefault();
+            longPressTriggered = false;
+        }
+    });
 
     element.addEventListener('mousedown', start, {passive: true});
     element.addEventListener('touchstart', start, {passive: true});
-    element.addEventListener('click', cancel);
     element.addEventListener('mouseout', cancel);
+    element.addEventListener('mouseleave', cancel);
     element.addEventListener('touchend', cancel);
-    element.addEventListener('touchleave', cancel);
     element.addEventListener('touchcancel', cancel);
     element.addEventListener('mousemove', () => { isDragging = true; cancel(); });
     element.addEventListener('touchmove', () => { isDragging = true; cancel(); }, {passive: true});
@@ -291,8 +301,10 @@ function setupLongPress(element, item) {
     // Prevent default context menu (OS right click / long press)
     element.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        // Trigger manually on contextmenu just in case we missed it
-        if (!isDragging) openItemActions(item, element);
+        if (!isDragging) {
+            longPressTriggered = true;
+            openItemActions(item, element);
+        }
     });
 }
 
