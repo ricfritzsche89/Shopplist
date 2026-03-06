@@ -1,0 +1,652 @@
+:root {
+    --bg: #fafafa; /* Sehr weiches fast-weiß */
+    --surface: #ffffff;
+    --primary: #9ca3af; /* Default: Minimalistisches Grau */
+    --primary-hover: color-mix(in srgb, var(--primary) 90%, black);
+    --text: #374151; /* Weicheres Dunkelgrau statt hartem Schwarz */
+    --text-muted: #9ca3af;
+    --border: #f3f4f6; /* Sehr subtiler Rahmen */
+    --danger: #fca5a5; /* Weiches Rot */
+    --success: #6ee7b7; /* Weiches Grün */
+    --nav-height: 70px;
+    --radius: 12px; /* Etwas flacher, minimalistischer */
+    --shadow-soft: 0 4px 14px rgba(0, 0, 0, 0.03); /* Kaum sichtbarer Schatten */
+}
+
+body.dark-theme {
+    --bg: #111827; /* Tiefes, mattes Dunkelgrau/Blau */
+    --surface: #1f2937;
+    --text: #f3f4f6;
+    --text-muted: #6b7280;
+    --border: #374151;
+    --shadow-soft: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: var(--nav-height);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header */
+.app-header {
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.app-header h1 {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+/* Main content */
+.app-content {
+    flex-grow: 1;
+    padding: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.view {
+    display: none;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.view.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Forms & Inputs */
+.input-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+input[type="text"], input[type="number"] {
+    flex-grow: 1;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--surface);
+    color: var(--text);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input[type="text"]:focus, input[type="number"]:focus {
+    border-color: var(--primary);
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.btn-secondary {
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-icon:hover {
+    background-color: var(--border);
+    color: var(--text);
+}
+
+.btn-icon.circle {
+    border: 1px solid var(--border);
+    width: 32px;
+    height: 32px;
+    padding: 0;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.mb-15 {
+    margin-bottom: 15px;
+}
+
+.mt-10 {
+    margin-top: 10px;
+}
+
+/* Select Input */
+.select-input {
+    flex-grow: 1;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--surface);
+    color: var(--text);
+    font-size: 1rem;
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+}
+
+.btn-danger-text {
+    color: var(--danger);
+    background: none;
+}
+.btn-danger-text:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+/* Category Filters */
+/* Category Filters */
+.category-filters-container {
+    position: relative;
+    width: calc(100% + 40px);
+    margin-left: -20px; /* Bleed out of container */
+}
+
+.category-filters {
+    display: flex;
+    flex-wrap: nowrap; /* WICHTIG: Verhindert Umbruch -> erzwingt Scrollen */
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 20px 8px 20px; /* Links/Rechts padding für den 'bleed' Effekt */
+    scrollbar-width: none; /* Firefox */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+.category-filters::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Edge */
+}
+
+.filter-chip {
+    white-space: nowrap;
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-chip.active {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Lists */
+.list-container {
+    background-color: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-soft);
+    overflow: hidden;
+}
+
+.item-list {
+    list-style: none;
+}
+
+.item-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px; /* More spacing */
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.2s;
+}
+
+.item-list li:last-child {
+    border-bottom: none;
+}
+
+.item-content {
+    display: flex;
+    align-items: center;
+    gap: 16px; /* A bit more gap */
+    flex-grow: 1;
+}
+
+.item-checkbox {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px; /* Softer checkbox */
+    border: 2px solid var(--border);
+    appearance: none;
+    cursor: pointer;
+    outline: none;
+    position: relative;
+    transition: all 0.2s ease;
+    background-color: var(--surface);
+}
+
+.item-checkbox:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    transform: scale(1.05); /* Slight pop */
+}
+
+.item-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 3px;
+    width: 6px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.item-name {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.item-amount {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+}
+
+.item-badge {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background-color: var(--border);
+    color: var(--text-muted);
+    margin-left: 8px;
+}
+
+.item-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.drag-handle {
+    cursor: grab;
+    color: var(--border);
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+}
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+li.sortable-ghost {
+    opacity: 0.4;
+    background-color: var(--bg);
+}
+
+.item-list li.checked {
+    opacity: 0.5;
+    background-color: var(--bg);
+}
+
+.item-list li.checked .item-name {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.empty-state {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+/* Recipes List */
+.recipe-list {
+    list-style: none;
+}
+
+.recipe-list li {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.recipe-list li:hover {
+    background-color: var(--bg);
+}
+
+.recipe-list li:last-child {
+    border-bottom: none;
+}
+
+.recipe-name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.recipe-meta {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+/* Modals */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 100;
+    display: none;
+    align-items: flex-end; /* Bottom sheet style for mobile */
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background-color: var(--surface);
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    border-radius: 20px 20px 0 0;
+    padding: 24px;
+    overflow-y: auto;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 600px) {
+    .modal {
+        align-items: center;
+    }
+    .modal-content {
+        border-radius: 20px;
+    }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.recipe-portions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background-color: var(--bg);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+}
+
+.portion-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.portion-controls span {
+    font-size: 1.125rem;
+    font-weight: 600;
+    min-width: 24px;
+    text-align: center;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--nav-height);
+    background-color: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 10;
+    padding-bottom: env(safe-area-inset-bottom); /* iOS bottom bar support */
+}
+
+.nav-item {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    flex: 1;
+    padding: 8px 0;
+    transition: color 0.2s;
+}
+
+.nav-item.active {
+    color: var(--primary);
+}
+
+.nav-item svg {
+    margin-bottom: 2px;
+}
+
+.nav-item span {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Floating Action Button */
+.fab {
+    position: fixed;
+    bottom: calc(var(--nav-height) + 20px);
+    right: 20px;
+    width: 60px; /* Leicht kleiner für Minimalismus */
+    height: 60px;
+    border-radius: 50%;
+    background-color: var(--primary); /* Kein Gradient mehr, pures Minimalismus */
+    color: white;
+    border: none;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 20;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s;
+}
+
+.fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.2);
+}
+.fab:active {
+    transform: scale(0.95);
+}
+
+/* Settings Modal Elements */
+.settings-group {
+    padding: 16px;
+    background-color: var(--bg);
+    border-radius: var(--radius);
+}
+
+.settings-group h3 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+}
+
+.settings-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 12px;
+}
+
+/* Toggle Switch */
+.theme-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border);
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: var(--primary);
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* Color Picker */
+.color-picker {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.color-swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.color-swatch:hover {
+    transform: scale(1.1);
+}
+
+.color-swatch.active {
+    border-color: var(--text);
+    transform: scale(1.1);
+    box-shadow: var(--shadow-soft);
+}
+
+/* Helpers */
+.favorite-icon {
+    fill: none;
+    transition: fill 0.2s, stroke 0.2s;
+}
+.favorite-icon.active {
+    fill: #f59e0b;
+    stroke: #f59e0b;
+}

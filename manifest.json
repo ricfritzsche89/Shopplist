@@ -1,0 +1,16 @@
+{
+  "name": "Shopplist",
+  "short_name": "Shopplist",
+  "description": "Gemeinsame Einkaufsliste & Rezepte",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
