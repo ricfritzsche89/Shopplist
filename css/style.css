@@ -258,6 +258,10 @@ input[type="text"]:focus, input[type="number"]:focus {
     padding: 18px 20px; /* More spacing */
     border-bottom: 1px solid var(--border);
     transition: background-color 0.2s;
+    /* Prevent text selection during long-press on mobile */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none; /* Disable iOS callout popup */
 }
 
 .item-list li:last-child {

@@ -318,64 +318,96 @@ function renderShoppingList() {
 // Long Press Context Menu Logic
 // -------------------------------------------------------------
 let currentActionItem = null;
-let currentActionLi = null;
-
-function setupLongPress(element, item, favItem = null, mode = 'list') {
-    let pressTimer;
-    let isDragging = false;
+let currentActionLi = null;function setupLongPress(element, item, favItem = null, mode = 'list') {
+    let pressTimer = null;
     let longPressTriggered = false;
-    
-    const start = (e) => {
-        // Don't trigger long press if clicking directly on the checkbox or drag handle
-        if(e.target.closest('.item-checkbox') || e.target.closest('.drag-handle') || e.target.closest('.btn-add-fav')) return;
-        
-        isDragging = false;
-        longPressTriggered = false;
-        pressTimer = window.setTimeout(() => {
-            longPressTriggered = true;
-            if (mode === 'fav' && favItem) {
-                currentFavItem = favItem;
-                favActionModalTitle.textContent = favItem.name;
-                modalFavActions.classList.add('active');
-            } else if (item) {
-                openItemActions(item, element);
-            }
-            if (navigator.vibrate) navigator.vibrate(50);
-        }, 500);
-    };
+    let startX = 0;
+    let startY = 0;
+    const MOVE_THRESHOLD = 12; // px - ignore tiny wobbles
 
-    const cancel = () => clearTimeout(pressTimer);
-    
-    // Suppress the click that fires after a long-press touchend
+    function triggerAction() {
+        longPressTriggered = true;
+        if (mode === 'fav' && favItem) {
+            currentFavItem = favItem;
+            favActionModalTitle.textContent = favItem.name;
+            modalFavActions.classList.add('active');
+        } else if (item) {
+            openItemActions(item, element);
+        }
+        if (navigator.vibrate) navigator.vibrate(60);
+    }
+
+    function onTouchStart(e) {
+        if (e.target.closest('.item-checkbox') || e.target.closest('.drag-handle') || e.target.closest('.btn-add-fav')) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        longPressTriggered = false;
+        pressTimer = setTimeout(triggerAction, 500);
+    }
+
+    function onTouchMove(e) {
+        if (!pressTimer) return;
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        // Only cancel if the finger has actually moved significantly
+        if (Math.sqrt(dx * dx + dy * dy) > MOVE_THRESHOLD) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+        }
+    }
+
+    function onTouchEnd() {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+    }
+
+    // Mouse desktop fallback
+    function onMouseDown(e) {
+        if (e.button !== 0) return;
+        if (e.target.closest('.item-checkbox') || e.target.closest('.drag-handle') || e.target.closest('.btn-add-fav')) return;
+        startX = e.clientX;
+        startY = e.clientY;
+        longPressTriggered = false;
+        pressTimer = setTimeout(triggerAction, 600);
+    }
+
+    function onMouseMove(e) {
+        if (!pressTimer) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (Math.sqrt(dx * dx + dy * dy) > MOVE_THRESHOLD) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+        }
+    }
+
+    function onMouseUp() {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+    }
+
+    // Suppress the click that fires right after a long-press touchend
     element.addEventListener('click', (e) => {
         if (longPressTriggered) {
             e.stopPropagation();
             e.preventDefault();
             longPressTriggered = false;
         }
-    });
+    }, true); // capture phase to catch it early
 
-    element.addEventListener('mousedown', start, {passive: true});
-    element.addEventListener('touchstart', start, {passive: true});
-    element.addEventListener('mouseout', cancel);
-    element.addEventListener('mouseleave', cancel);
-    element.addEventListener('touchend', cancel);
-    element.addEventListener('touchcancel', cancel);
-    element.addEventListener('mousemove', () => { isDragging = true; cancel(); });
-    element.addEventListener('touchmove', () => { isDragging = true; cancel(); }, {passive: true});
-    
+    element.addEventListener('touchstart', onTouchStart, {passive: true});
+    element.addEventListener('touchmove', onTouchMove, {passive: true});
+    element.addEventListener('touchend', onTouchEnd, {passive: true});
+    element.addEventListener('touchcancel', onTouchEnd, {passive: true});
+    element.addEventListener('mousedown', onMouseDown);
+    element.addEventListener('mousemove', onMouseMove);
+    element.addEventListener('mouseup', onMouseUp);
+    element.addEventListener('mouseleave', onMouseUp);
+
+    // Desktop right-click
     element.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        if (!isDragging) {
-            longPressTriggered = true;
-            if (mode === 'fav' && favItem) {
-                currentFavItem = favItem;
-                favActionModalTitle.textContent = favItem.name;
-                modalFavActions.classList.add('active');
-            } else if (item) {
-                openItemActions(item, element);
-            }
-        }
+        if (!longPressTriggered) triggerAction();
     });
 }
 
