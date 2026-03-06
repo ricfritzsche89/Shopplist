@@ -17,8 +17,23 @@ const inputItemAmount = document.getElementById('input-item-amount');
 const inputItemCategory = document.getElementById('input-item-category');
 const btnCloseAddModal = document.getElementById('btn-close-add-modal');
 const btnClearList = document.getElementById('btn-clear-list');
+const inputItemUnit = document.getElementById('input-item-unit');
 const customCategoryGroup = document.getElementById('custom-category-group');
 const inputCustomCategory = document.getElementById('input-custom-category');
+
+// Favorites modals
+const modalFavActions = document.getElementById('modal-fav-actions');
+const favActionModalTitle = document.getElementById('fav-action-modal-title');
+const btnFavActionAdd = document.getElementById('btn-fav-action-add');
+const btnFavActionDelete = document.getElementById('btn-fav-action-delete');
+const btnFavActionCancel = document.getElementById('btn-fav-action-cancel');
+const modalFavQuantity = document.getElementById('modal-fav-quantity');
+const favQtyTitle = document.getElementById('fav-qty-title');
+const favQtyAmount = document.getElementById('fav-qty-amount');
+const favQtyUnit = document.getElementById('fav-qty-unit');
+const btnFavQtyConfirm = document.getElementById('btn-fav-qty-confirm');
+const btnFavQtyCancel = document.getElementById('btn-fav-qty-cancel');
+let currentFavItem = null;
 
 // Show/hide custom category input
 inputItemCategory.addEventListener('change', () => {
@@ -305,26 +320,31 @@ function renderShoppingList() {
 let currentActionItem = null;
 let currentActionLi = null;
 
-function setupLongPress(element, item) {
+function setupLongPress(element, item, favItem = null, mode = 'list') {
     let pressTimer;
     let isDragging = false;
     let longPressTriggered = false;
     
     const start = (e) => {
         // Don't trigger long press if clicking directly on the checkbox or drag handle
-        if(e.target.closest('.item-checkbox') || e.target.closest('.drag-handle')) return;
+        if(e.target.closest('.item-checkbox') || e.target.closest('.drag-handle') || e.target.closest('.btn-add-fav')) return;
         
         isDragging = false;
         longPressTriggered = false;
         pressTimer = window.setTimeout(() => {
             longPressTriggered = true;
-            openItemActions(item, element);
-        }, 500); // 500ms long press
+            if (mode === 'fav' && favItem) {
+                currentFavItem = favItem;
+                favActionModalTitle.textContent = favItem.name;
+                modalFavActions.classList.add('active');
+            } else if (item) {
+                openItemActions(item, element);
+            }
+            if (navigator.vibrate) navigator.vibrate(50);
+        }, 500);
     };
 
-    const cancel = () => {
-        clearTimeout(pressTimer);
-    };
+    const cancel = () => clearTimeout(pressTimer);
     
     // Suppress the click that fires after a long-press touchend
     element.addEventListener('click', (e) => {
@@ -344,12 +364,17 @@ function setupLongPress(element, item) {
     element.addEventListener('mousemove', () => { isDragging = true; cancel(); });
     element.addEventListener('touchmove', () => { isDragging = true; cancel(); }, {passive: true});
     
-    // Prevent default context menu (OS right click / long press)
     element.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         if (!isDragging) {
             longPressTriggered = true;
-            openItemActions(item, element);
+            if (mode === 'fav' && favItem) {
+                currentFavItem = favItem;
+                favActionModalTitle.textContent = favItem.name;
+                modalFavActions.classList.add('active');
+            } else if (item) {
+                openItemActions(item, element);
+            }
         }
     });
 }
@@ -426,7 +451,10 @@ if(btnCloseAddModal) {
 formAddItem.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = inputItemName.value.trim();
-    const amount = inputItemAmount.value.trim();
+    const amountNum = inputItemAmount.value.trim();
+    const unit = inputItemUnit.value;
+    // Combine amount number + unit only if a number was entered
+    const amount = amountNum ? `${amountNum} ${unit}` : '';
     
     // Resolve category: use custom input if selected, otherwise use the select value
     let category = inputItemCategory.value;
@@ -440,7 +468,6 @@ formAddItem.addEventListener('submit', async (e) => {
             const newOption = document.createElement('option');
             newOption.value = category;
             newOption.textContent = customVal;
-            // Insert before the "Eigene Kategorie..." option
             const customOption = inputItemCategory.querySelector('option[value="__custom__"]');
             inputItemCategory.insertBefore(newOption, customOption);
         }
@@ -453,9 +480,7 @@ formAddItem.addEventListener('submit', async (e) => {
         customCategoryGroup.style.display = 'none';
         modalAddItem.classList.remove('active');
         
-        // Insert DB
         await db.addOrUpdateListItem(name, amount, category);
-        // Reload list (also refreshes filter chips with any new categories)
         await loadShoppingList();
     }
 });
@@ -553,7 +578,7 @@ async function loadFavorites() {
         const amountDisplay = item.amount ? item.amount : '<span style="opacity:0">-</span>';
         
         li.innerHTML = `
-            <div class="item-content" style="cursor: pointer;">
+            <div class="item-content">
                 <div class="item-table-layout">
                     <span class="item-name">${item.name}</span>
                     <span class="item-amount">${amountDisplay}</span>
@@ -562,17 +587,79 @@ async function loadFavorites() {
             </div>
         `;
 
+        // Quick add button (uses saved amount)
         li.querySelector('.btn-add-fav').addEventListener('click', async (e) => {
-            e.stopPropagation(); // Eventuell Bubble verhindern
-            const btn = li.querySelector('.btn-add-fav');
-            btn.textContent = '✔';
-            // standard category "sonstiges" for favorites right now
-            await db.addOrUpdateListItem(item.name, item.amount, "sonstiges");
-            setTimeout(() => btn.textContent = '+ Liste', 1000);
-            loadShoppingList();
+            e.stopPropagation();
+            currentFavItem = item;
+            // Pre-fill amount if saved
+            if (item.amount) {
+                const parsed = db.parseAmount(item.amount);
+                favQtyAmount.value = parsed.value || '';
+                // Try to match the unit
+                const unitOpts = Array.from(favQtyUnit.options).map(o => o.value);
+                const matchedUnit = unitOpts.find(u => item.amount.includes(u));
+                if (matchedUnit) favQtyUnit.value = matchedUnit;
+            } else {
+                favQtyAmount.value = '';
+            }
+            favQtyTitle.textContent = `Menge für "${item.name}"`;
+            modalFavQuantity.classList.add('active');
         });
 
+        // Long press for context menu
+        setupLongPress(li, null, item, 'fav');
+
         favoritesListEl.appendChild(li);
+    });
+}
+
+// Favorites Context Menu Buttons
+if (btnFavActionCancel) btnFavActionCancel.addEventListener('click', () => modalFavActions.classList.remove('active'));
+
+if (btnFavActionAdd) {
+    btnFavActionAdd.addEventListener('click', () => {
+        modalFavActions.classList.remove('active');
+        if (!currentFavItem) return;
+        // Pre-fill
+        if (currentFavItem.amount) {
+            const parsed = db.parseAmount(currentFavItem.amount);
+            favQtyAmount.value = parsed.value || '';
+            const unitOpts = Array.from(favQtyUnit.options).map(o => o.value);
+            const matchedUnit = unitOpts.find(u => currentFavItem.amount.includes(u));
+            if (matchedUnit) favQtyUnit.value = matchedUnit;
+        } else {
+            favQtyAmount.value = '';
+        }
+        favQtyTitle.textContent = `Menge für "${currentFavItem.name}"`;
+        setTimeout(() => modalFavQuantity.classList.add('active'), 300);
+    });
+}
+
+if (btnFavActionDelete) {
+    btnFavActionDelete.addEventListener('click', async () => {
+        modalFavActions.classList.remove('active');
+        if (!currentFavItem) return;
+        await db.toggleFavorite(currentFavItem.name, currentFavItem.amount);
+        loadFavorites();
+    });
+}
+
+// Quantity dialog confirm
+if (btnFavQtyConfirm) {
+    btnFavQtyConfirm.addEventListener('click', async () => {
+        if (!currentFavItem) return;
+        const num = favQtyAmount.value.trim();
+        const unit = favQtyUnit.value;
+        const amount = num ? `${num} ${unit}` : '';
+        modalFavQuantity.classList.remove('active');
+        await db.addOrUpdateListItem(currentFavItem.name, amount, 'sonstiges');
+        await loadShoppingList();
+    });
+}
+
+if (btnFavQtyCancel) {
+    btnFavQtyCancel.addEventListener('click', () => {
+        modalFavQuantity.classList.remove('active');
     });
 }
 

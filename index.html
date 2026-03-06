@@ -150,7 +150,20 @@
                         <input type="text" id="input-item-name" placeholder="Was brauchst du?" required style="flex-grow: 1;" autocomplete="off">
                     </div>
                     <div class="input-group mb-15">
-                        <input type="text" id="input-item-amount" placeholder="Menge (z.B. 2, 500g)" style="flex-grow: 1;" autocomplete="off">
+                        <input type="number" id="input-item-amount" placeholder="Menge" min="0" step="any" style="width: 90px; flex-shrink: 0;" autocomplete="off">
+                        <select id="input-item-unit" class="select-input" style="flex: 1; min-width: 100px;">
+                            <option value="Stk">Stk (Stück)</option>
+                            <option value="g">g (Gramm)</option>
+                            <option value="kg">kg (Kilogramm)</option>
+                            <option value="ml">ml (Milliliter)</option>
+                            <option value="l">l (Liter)</option>
+                            <option value="Pkg">Pkg (Packung)</option>
+                            <option value="Dose">Dose</option>
+                            <option value="Bund">Bund</option>
+                            <option value="Paar">Paar</option>
+                            <option value="EL">EL (Esslöffel)</option>
+                            <option value="TL">TL (Teelöffel)</option>
+                        </select>
                     </div>
                     <div class="input-group mb-15">
                         <select id="input-item-category" class="select-input" required>
@@ -208,12 +221,12 @@
 
         <!-- Item Action Modal (Long Press / Context Menu) -->
         <div id="modal-item-actions" class="modal modal-bottom">
-            <div class="modal-content text-center">
+            <div class="modal-content">
                 <h3 id="action-modal-title" class="mb-15" style="border-bottom: 1px solid var(--border); padding-bottom: 12px; font-size: 1.1rem; text-align: center;">Name der Zutat</h3>
                 
                 <button id="btn-action-fav" class="btn-primary full-width mb-15" style="background-color: var(--surface); color: var(--text); border: 1px solid var(--border);">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; vertical-align: middle;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                    Zu Favoriten hinzufügen / entfernen
+                    Zu Favoriten / entfernen
                 </button>
                 
                 <button id="btn-action-delete" class="btn-primary full-width mb-15" style="background-color: var(--danger); color: white;">
@@ -224,6 +237,52 @@
                 <button id="btn-action-cancel" class="btn-primary full-width" style="background-color: transparent; color: var(--text-muted);">
                     Abbrechen
                 </button>
+            </div>
+        </div>
+
+        <!-- Favorites Action Modal (Long Press) -->
+        <div id="modal-fav-actions" class="modal modal-bottom">
+            <div class="modal-content">
+                <h3 id="fav-action-modal-title" class="mb-15" style="border-bottom: 1px solid var(--border); padding-bottom: 12px; font-size: 1.1rem; text-align: center;">Favorit</h3>
+                
+                <button id="btn-fav-action-add" class="btn-primary full-width mb-15" style="background-color: var(--surface); color: var(--text); border: 1px solid var(--border);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Mit Menge zur Liste hinzufügen
+                </button>
+                
+                <button id="btn-fav-action-delete" class="btn-primary full-width mb-15" style="background-color: var(--danger); color: white;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; vertical-align: middle;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    Favorit löschen
+                </button>
+
+                <button id="btn-fav-action-cancel" class="btn-primary full-width" style="background-color: transparent; color: var(--text-muted);">
+                    Abbrechen
+                </button>
+            </div>
+        </div>
+
+        <!-- Add Favorite to List with Quantity Modal -->
+        <div id="modal-fav-quantity" class="modal modal-bottom">
+            <div class="modal-content">
+                <h3 id="fav-qty-title" class="mb-15" style="border-bottom: 1px solid var(--border); padding-bottom: 12px; font-size: 1.1rem; text-align: center;">Menge auswählen</h3>
+                <div class="input-group mb-15">
+                    <input type="number" id="fav-qty-amount" placeholder="Menge" min="0" step="any" style="width: 90px; flex-shrink: 0;">
+                    <select id="fav-qty-unit" class="select-input" style="flex: 1;">
+                        <option value="Stk">Stk (Stück)</option>
+                        <option value="g">g (Gramm)</option>
+                        <option value="kg">kg (Kilogramm)</option>
+                        <option value="ml">ml (Milliliter)</option>
+                        <option value="l">l (Liter)</option>
+                        <option value="Pkg">Pkg (Packung)</option>
+                        <option value="Dose">Dose</option>
+                        <option value="Bund">Bund</option>
+                        <option value="Paar">Paar</option>
+                        <option value="EL">EL (Esslöffel)</option>
+                        <option value="TL">TL (Teelöffel)</option>
+                    </select>
+                </div>
+                <button id="btn-fav-qty-confirm" class="btn-primary full-width mb-15">Zur Liste hinzufügen</button>
+                <button id="btn-fav-qty-cancel" class="btn-primary full-width" style="background-color: transparent; color: var(--text-muted);">Abbrechen</button>
             </div>
         </div>
     </main>
