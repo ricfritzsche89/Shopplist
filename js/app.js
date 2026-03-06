@@ -20,10 +20,18 @@ const btnClearList = document.getElementById('btn-clear-list');
 
 // Settings & Theme
 const btnOpenSettings = document.getElementById('btn-open-settings');
+const navBtnSettings = document.getElementById('btn-open-settings'); // Same ID now used in Bottom Nav
 const modalSettings = document.getElementById('modal-settings');
 const btnCloseSettingsModal = document.getElementById('btn-close-settings-modal');
 const toggleDarkMode = document.getElementById('toggle-dark-mode');
 const colorSwatches = document.querySelectorAll('.color-swatch');
+
+// Item Actions Modal
+const modalItemActions = document.getElementById('modal-item-actions');
+const actionModalTitle = document.getElementById('action-modal-title');
+const btnActionFav = document.getElementById('btn-action-fav');
+const btnActionDelete = document.getElementById('btn-action-delete');
+const btnActionCancel = document.getElementById('btn-action-cancel');
 
 // Modals
 const recipeModal = document.getElementById('modal-recipe');
@@ -71,7 +79,7 @@ function initTheme() {
     }
     
     // Theme Listeners
-    if (btnOpenSettings) btnOpenSettings.addEventListener('click', () => modalSettings.classList.add('active'));
+    if (navBtnSettings) navBtnSettings.addEventListener('click', () => modalSettings.classList.add('active'));
     if (btnCloseSettingsModal) btnCloseSettingsModal.addEventListener('click', () => modalSettings.classList.remove('active'));
 
     toggleDarkMode.addEventListener('change', (e) => {
@@ -203,25 +211,21 @@ function renderShoppingList() {
         // Let's create drag handle only for unchecked items
         const isNotChecked = !item.is_checked;
 
+        // Using placeholder spaces for amounts/categories if they don't exist to keep the table columns aligned
+        const amountDisplay = item.amount ? item.amount : '<span style="opacity:0">-</span>';
+        const categoryDisplay = (item.category && item.category !== 'sonstiges') ? getCategoryName(item.category) : '<span style="opacity:0">-</span>';
+
         li.innerHTML = `
             ${isNotChecked ? `<div class="drag-handle" draggable="true" aria-label="Sortieren" title="Ziehen zum Sortieren">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
             </div>` : ''}
             <div class="item-content">
                 <input type="checkbox" class="item-checkbox" ${item.is_checked ? 'checked' : ''}>
-                <div>
+                <div class="item-table-layout">
                     <span class="item-name">${item.name}</span>
-                    ${item.amount ? `<span class="item-amount">${item.amount}</span>` : ''}
-                    ${item.category && item.category !== 'sonstiges' ? `<span class="item-badge">${getCategoryName(item.category)}</span>` : ''}
+                    <span class="item-amount">${amountDisplay}</span>
+                    <span class="item-badge" style="background-color: transparent; border: 1px solid var(--border); ${!(item.category && item.category !== 'sonstiges') ? 'border-color: transparent;' : ''}">${categoryDisplay}</span>
                 </div>
-            </div>
-            <div class="item-actions">
-                <button class="btn-icon btn-fav" aria-label="Favorit">
-                    <svg class="favorite-icon" width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                </button>
-                <button class="btn-icon btn-delete" aria-label="Löschen">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
             </div>
         `;
         
@@ -229,6 +233,9 @@ function renderShoppingList() {
         if (isNotChecked) {
             setupDragAndDrop(li, item);
         }
+
+        // Long Press to open context menu
+        setupLongPress(li, item);
 
         // Event Listeners
         const checkbox = li.querySelector('.item-checkbox');
@@ -242,26 +249,92 @@ function renderShoppingList() {
             await db.toggleListItem(item.name, isChecked);
         });
 
-        const btnFav = li.querySelector('.btn-fav');
-        btnFav.addEventListener('click', async () => {
-            const res = await db.toggleFavorite(item.name, item.amount);
-            if (res && res.isFavorite) {
-                btnFav.querySelector('svg').classList.add('active');
-            } else {
-                btnFav.querySelector('svg').classList.remove('active');
-            }
-            loadFavorites();
-        });
-
-        const btnDel = li.querySelector('.btn-delete');
-        btnDel.addEventListener('click', async () => {
-            li.style.opacity = '0.5';
-            currentShoppingList = currentShoppingList.filter(i => i.name !== item.name); // update optimistic
-            await db.deleteListItem(item.name);
-            renderShoppingList();
-        });
-
         shoppingListEl.appendChild(li);
+    });
+}
+
+// -------------------------------------------------------------
+// Long Press Context Menu Logic
+// -------------------------------------------------------------
+let currentActionItem = null;
+let currentActionLi = null;
+
+function setupLongPress(element, item) {
+    let pressTimer;
+    let isDragging = false;
+    
+    const start = (e) => {
+        if(e.type === 'click' && e.button !== 0) return; // Only process left clicks or touches
+        // Don't trigger long press if clicking directly on the checkbox or drag handle
+        if(e.target.closest('.item-checkbox') || e.target.closest('.drag-handle')) return;
+        
+        isDragging = false;
+        pressTimer = window.setTimeout(() => {
+            openItemActions(item, element);
+        }, 500); // 500ms long press
+    };
+
+    const cancel = () => {
+        clearTimeout(pressTimer);
+    };
+
+    element.addEventListener('mousedown', start, {passive: true});
+    element.addEventListener('touchstart', start, {passive: true});
+    element.addEventListener('click', cancel);
+    element.addEventListener('mouseout', cancel);
+    element.addEventListener('touchend', cancel);
+    element.addEventListener('touchleave', cancel);
+    element.addEventListener('touchcancel', cancel);
+    element.addEventListener('mousemove', () => { isDragging = true; cancel(); });
+    element.addEventListener('touchmove', () => { isDragging = true; cancel(); }, {passive: true});
+    
+    // Prevent default context menu (OS right click / long press)
+    element.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        // Trigger manually on contextmenu just in case we missed it
+        if (!isDragging) openItemActions(item, element);
+    });
+}
+
+function openItemActions(item, liElement) {
+    currentActionItem = item;
+    currentActionLi = liElement;
+    actionModalTitle.textContent = item.name;
+    modalItemActions.classList.add('active');
+    
+    // Kleines haptisches Feedback, falls unterstützt
+    if (navigator.vibrate) {
+        navigator.vibrate(50);
+    }
+}
+
+if (btnActionCancel) {
+    btnActionCancel.addEventListener('click', () => {
+        modalItemActions.classList.remove('active');
+    });
+}
+
+if (btnActionDelete) {
+    btnActionDelete.addEventListener('click', async () => {
+        if (!currentActionItem) return;
+        modalItemActions.classList.remove('active');
+        if (currentActionLi) currentActionLi.style.opacity = '0.5';
+        
+        currentShoppingList = currentShoppingList.filter(i => i.name !== currentActionItem.name); // update optimistic
+        await db.deleteListItem(currentActionItem.name);
+        renderShoppingList();
+    });
+}
+
+if (btnActionFav) {
+    btnActionFav.addEventListener('click', async () => {
+        if (!currentActionItem) return;
+        modalItemActions.classList.remove('active');
+        await db.toggleFavorite(currentActionItem.name, currentActionItem.amount);
+        loadFavorites(); 
+        
+        // Show tiny tooltip or purely rely on modal feedback
+        alert(currentActionItem.name + " in den Favoriten aktualisiert!");
     });
 }
 
@@ -400,23 +473,25 @@ async function loadFavorites() {
 
     list.forEach(item => {
         const li = document.createElement('li');
+        const amountDisplay = item.amount ? item.amount : '<span style="opacity:0">-</span>';
+        
         li.innerHTML = `
             <div class="item-content" style="cursor: pointer;">
-                <div>
+                <div class="item-table-layout">
                     <span class="item-name">${item.name}</span>
-                    ${item.amount ? `<span class="item-amount">${item.amount}</span>` : ''}
+                    <span class="item-amount">${amountDisplay}</span>
+                    <button class="btn-primary btn-add-fav" style="padding: 4px 12px; font-size: 0.875rem; border-radius: 20px;">+ Liste</button>
                 </div>
-            </div>
-            <div class="item-actions">
-                <button class="btn-primary" style="padding: 6px 12px; font-size: 0.875rem;">+ Liste</button>
             </div>
         `;
 
-        li.querySelector('.btn-primary').addEventListener('click', async () => {
-            li.querySelector('.btn-primary').textContent = '✔';
+        li.querySelector('.btn-add-fav').addEventListener('click', async (e) => {
+            e.stopPropagation(); // Eventuell Bubble verhindern
+            const btn = li.querySelector('.btn-add-fav');
+            btn.textContent = '✔';
             // standard category "sonstiges" for favorites right now
             await db.addOrUpdateListItem(item.name, item.amount, "sonstiges");
-            setTimeout(() => li.querySelector('.btn-primary').textContent = '+ Liste', 1000);
+            setTimeout(() => btn.textContent = '+ Liste', 1000);
             loadShoppingList();
         });
 

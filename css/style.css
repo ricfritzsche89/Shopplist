@@ -41,9 +41,13 @@ body {
 
 /* Header */
 .app-header {
+    height: 60px;
     background-color: var(--surface);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 20px;
     border-bottom: 1px solid var(--border);
-    padding: 16px 20px;
     position: sticky;
     top: 0;
     z-index: 10;
@@ -51,7 +55,7 @@ body {
 
 .app-header h1 {
     font-size: 1.25rem;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 /* Main content */
@@ -263,8 +267,47 @@ input[type="text"]:focus, input[type="number"]:focus {
 .item-content {
     display: flex;
     align-items: center;
-    gap: 16px; /* A bit more gap */
+    gap: 16px;
     flex-grow: 1;
+    overflow: hidden;
+}
+
+.item-table-layout {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    flex-grow: 1;
+    width: 100%;
+}
+
+.item-table-layout .item-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 1rem;
+}
+
+.item-table-layout .item-amount {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-align: right;
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+}
+
+.item-table-layout .item-badge {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background-color: var(--border);
+    color: var(--text-muted);
+    text-align: center;
+    white-space: nowrap;
+    margin-left: 8px;
 }
 
 .item-checkbox {
@@ -296,29 +339,6 @@ input[type="text"]:focus, input[type="number"]:focus {
     border: solid white;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
-}
-
-.item-name {
-    font-size: 1rem;
-    font-weight: 500;
-}
-
-.item-amount {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    background: var(--bg);
-    padding: 2px 8px;
-    border-radius: 12px;
-    margin-left: 8px;
-}
-
-.item-badge {
-    font-size: 0.75rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-    background-color: var(--border);
-    color: var(--text-muted);
-    margin-left: 8px;
 }
 
 .item-actions {
@@ -466,6 +486,25 @@ li.sortable-ghost {
     font-weight: 600;
     min-width: 24px;
     text-align: center;
+}
+
+/* Bottom Modal (Context Menu) */
+.modal-bottom {
+    align-items: flex-end; /* An den unteren Rand drücken */
+}
+
+.modal-bottom .modal-content {
+    width: 100%;
+    margin: 0;
+    max-width: 100%;
+    border-radius: var(--radius) var(--radius) 0 0;
+    transform: translateY(100%);
+    animation: slideUpBottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
+    padding-bottom: calc(var(--nav-height) + 20px); /* Platz für Navigation */
+}
+
+@keyframes slideUpBottom {
+    to { transform: translateY(0); }
 }
 
 /* Bottom Navigation */
