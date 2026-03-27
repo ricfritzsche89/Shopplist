@@ -2,7 +2,7 @@ import { PrivateFireClient } from './pf-sdk.js';
 
 // Konfiguriere deinen PrivateFire Client
 const pf = new PrivateFireClient({
-  host: 'http://192.168.178.36',
+  host: 'https://privatefire-ric.duckdns.org',
   apiKey: 'pfk_e014d885d19842368f11d6dfdd8c4ecf' // <-- eingefügt
 });
 
