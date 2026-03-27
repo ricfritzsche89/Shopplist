@@ -1,9 +1,13 @@
-// Supabase Konfiguration
-// ERSETZE DIESE WERTE MIT DEINEN SUPABASE PROJEKTDATEN
-const SUPABASE_URL = 'https://smekuryjkncmosujlkrp.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtZWt1cnlqa25jbW9zdWpsa3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTU0NzAsImV4cCI6MjA4ODM3MTQ3MH0.vuomSGVyynFa3ZAkM04YwDZcyqR76z31ijDZQYW93YE';
+import { PrivateFireClient } from './pf-sdk.js';
 
-export const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+// Konfiguriere deinen PrivateFire Client
+const pf = new PrivateFireClient({
+  host: 'http://192.168.178.36',
+  apiKey: 'DEIN_API_SCHLUESSEL_HIER' // <-- Füge hier den API-Key aus deinem Dashboard ein
+});
+
+// App-Name für die Datenbank (muss exakt dem Namen im Dashboard entsprechen)
+const APP_NAME = 'shopplist';
 
 // Hilfsfunktionen für Mengenzusammenführung
 export function parseAmount(amountStr) {
@@ -32,150 +36,135 @@ export function formatAmount(value, unit) {
 // Einkaufsliste API
 // -------------------------------------------------------------
 export async function getShoppingList() {
-    if (!supabase) return [];
-    // Hole Liste und sortiere priorisiert nach order_index
-    const { data, error } = await supabase.from('shopping_list').select('*').order('order_index', { ascending: true });
-    if (error) { 
-        console.error("❌ Fehler beim Abfragen der Liste:", error); 
-        return []; 
+    try {
+        // Hole Liste sortiert nach order_index
+        const res = await pf.db.select(APP_NAME, 'shopping_list', { order: 'order_index:asc' });
+        return res.data || [];
+    } catch (err) {
+        console.error("❌ Fehler beim Abfragen der Liste (PrivateFire):", err);
+        return [];
     }
-    return data;
 }
 
 export async function addOrUpdateListItem(name, amountStr, category = "sonstiges") {
-    if (!supabase) return null;
-    
-    // 1. Prüfen, ob der Artikel schon auf der Liste steht (und nicht abgehakt ist)
-    const { data: existingItems } = await supabase
-        .from('shopping_list')
-        .select('*')
-        .ilike('name', name)
-        .eq('is_checked', false);
+    try {
+        // 1. Prüfen, ob der Artikel schon existiert und nicht abgehakt ist
+        const checkRes = await pf.db.select(APP_NAME, 'shopping_list', {
+            ilike: [`name:${name}`],
+            eq: ['is_checked:false']
+        });
+        const existingItems = checkRes.data || [];
 
-    if (existingItems && existingItems.length > 0) {
-        // Zusammenführen aktivieren
-        const existing = existingItems[0];
-        const newAmt = parseAmount(amountStr);
-        const oldAmt = parseAmount(existing.amount);
+        if (existingItems && existingItems.length > 0) {
+            // Zusammenführen
+            const existing = existingItems[0];
+            const newAmt = parseAmount(amountStr);
+            const oldAmt = parseAmount(existing.amount);
 
-        // Nur zusammenführen, wenn die Einheiten gleich sind oder leer
-        if (newAmt.unit === oldAmt.unit) {
-            const combinedValue = oldAmt.value + newAmt.value;
-            const newAmountStr = formatAmount(combinedValue, newAmt.unit);
-            
-            const { data, error } = await supabase
-                .from('shopping_list')
-                .update({ amount: newAmountStr })
-                .eq('name', existing.name) // Wir updaten anhand des Namens, da id scheinbar nicht existiert
-                .select();
-            return data ? data[0] : null;
+            if (newAmt.unit === oldAmt.unit) {
+                const combinedValue = oldAmt.value + newAmt.value;
+                const newAmountStr = formatAmount(combinedValue, newAmt.unit);
+                
+                const updateRes = await pf.db.update(APP_NAME, 'shopping_list', { eq: [`name:${existing.name}`] }, { amount: newAmountStr });
+                return updateRes.data ? updateRes.data[0] : null;
+            }
         }
-    }
 
-    // Wenn nicht existiert oder Einheiten nicht matchen: Neu anlegen
-    // Hole den höchsten aktuellen order_index
-    const { data: currentItems } = await supabase.from('shopping_list').select('order_index').order('order_index', { ascending: false }).limit(1);
-    let nextIndex = 0;
-    if (currentItems && currentItems.length > 0) {
-        nextIndex = (currentItems[0].order_index || 0) + 1;
-    }
-
-    const { data, error } = await supabase
-        .from('shopping_list')
-        .insert([{ name: name, amount: amountStr || '', is_checked: false, category: category, order_index: nextIndex }])
-        .select();
+        // Wenn nicht existiert: Neu anlegen
+        // Höchsten order_index holen
+        const currentRes = await pf.db.select(APP_NAME, 'shopping_list', { order: 'order_index:desc', limit: 1 });
+        const currentItems = currentRes.data || [];
         
-    if (error) {
-        console.error("❌ Fehler beim Hinzufügen (Supabase):", error.message, error.details, error.hint);
-        alert(`Ein Fehler ist beim Speichern aufgetreten: ${error.message}. Sind die Supabase Tabellen (shopping_list, favorites, recipes) angelegt und die Policies (RLS) deaktiviert/erlaubt?`);
+        let nextIndex = 0;
+        if (currentItems && currentItems.length > 0) {
+            nextIndex = (currentItems[0].order_index || 0) + 1;
+        }
+
+        const insertRes = await pf.db.insert(APP_NAME, 'shopping_list', {
+            name: name, amount: amountStr || '', is_checked: false, category: category, order_index: nextIndex
+        });
+        
+        return insertRes.data;
+    } catch (err) {
+        console.error("❌ Fehler beim Hinzufügen (PrivateFire):", err);
+        alert(`Ein Fehler ist aufgetreten: ${err.message}. Hast du den pf.apiKey in db.js richtig eintragen?`);
         return null;
     }
-    
-    return data ? data[0] : null;
 }
 
 export async function toggleListItem(name, is_checked) {
-    if (!supabase) return null;
-    const { data, error } = await supabase
-        .from('shopping_list')
-        .update({ is_checked: is_checked })
-        .eq('name', name)
-        .select();
-    return data ? data[0] : null;
+    try {
+        const res = await pf.db.update(APP_NAME, 'shopping_list', { eq: [`name:${name}`] }, { is_checked: is_checked });
+        return res.data ? res.data[0] : null;
+    } catch (err) { return null; }
 }
 
 export async function deleteListItem(name) {
-    if (!supabase) return false;
-    const { error } = await supabase.from('shopping_list').delete().eq('name', name);
-    return !error;
+    try {
+        await pf.db.delete(APP_NAME, 'shopping_list', { eq: [`name:${name}`] });
+        return true;
+    } catch (err) { return false; }
 }
 
 export async function clearList() {
-    if (!supabase) return false;
-    // Da wir keine 'id' mehr haben, löschen wir einfach alle Reihen, deren 'name' nicht null ist (also alles)
-    const { error } = await supabase.from('shopping_list').delete().neq('name', 'THIS_WILL_NEVER_MATCH_SO_IT_CLEARS_ALL');
-    return !error;
+    try {
+        await pf.db.delete(APP_NAME, 'shopping_list', { neq: ['name:THIS_WILL_NEVER_MATCH_SO_IT_CLEARS_ALL'] });
+        return true;
+    } catch (err) { return false; }
 }
 
 export async function updateOrder(itemsOrderData) {
-    // itemsOrderData = [{name: 'Brot', order_index: 0}, {name: 'Milch', order_index: 1}]
-    if (!supabase) return false;
-    
-    // Einfacher Loop für Updates (wäre schöner als bulk, aber name als identifier geht oft nur einzeln in supabase js leicht)
-    for (let item of itemsOrderData) {
-        await supabase.from('shopping_list').update({ order_index: item.order_index }).eq('name', item.name);
-    }
-    return true;
+    try {
+        for (let item of itemsOrderData) {
+            await pf.db.update(APP_NAME, 'shopping_list', { eq: [`name:${item.name}`] }, { order_index: item.order_index });
+        }
+        return true;
+    } catch (err) { return false; }
 }
 
 // -------------------------------------------------------------
 // Favoriten API
 // -------------------------------------------------------------
 export async function getFavorites() {
-    if (!supabase) return [];
-    const { data, error } = await supabase.from('favorites').select('*');
-    if (error) return [];
-    return data;
+    try {
+        const res = await pf.db.select(APP_NAME, 'favorites');
+        return res.data || [];
+    } catch (error) { return []; }
 }
 
 export async function toggleFavorite(name, amount) {
-    if (!supabase) return null;
-    // Check if exists
-    const { data: existing } = await supabase.from('favorites').select('*').ilike('name', name);
-    
-    if (existing && existing.length > 0) {
-        // Remove favorite
-        await supabase.from('favorites').delete().eq('name', existing[0].name);
-        return { isFavorite: false };
-    } else {
-        // Add favorite
-        await supabase.from('favorites').insert([{ name: name, amount: amount || '' }]);
-        return { isFavorite: true };
-    }
+    try {
+        const { data: existing } = await pf.db.select(APP_NAME, 'favorites', { ilike: [`name:${name}`] });
+        if (existing && existing.length > 0) {
+            await pf.db.delete(APP_NAME, 'favorites', { eq: [`name:${existing[0].name}`] });
+            return { isFavorite: false };
+        } else {
+            await pf.db.insert(APP_NAME, 'favorites', { name: name, amount: amount || '' });
+            return { isFavorite: true };
+        }
+    } catch (err) { return null; }
 }
 
 // -------------------------------------------------------------
 // Rezepte API
 // -------------------------------------------------------------
 export async function getRecipes() {
-    if (!supabase) return [];
-    const { data, error } = await supabase.from('recipes').select('*');
-    if (error) return [];
-    return data;
+    try {
+        const res = await pf.db.select(APP_NAME, 'recipes');
+        return res.data || [];
+    } catch (error) { return []; }
 }
 
 export async function createRecipe(name, base_portions, ingredients) {
-    // ingredients = [{name: 'Käse', amount: '200g'}, ...]
-    if (!supabase) return null;
-    const { data, error } = await supabase
-        .from('recipes')
-        .insert([{ name, base_portions: parseInt(base_portions), ingredients }])
-        .select();
-    return data ? data[0] : null;
+    try {
+        const res = await pf.db.insert(APP_NAME, 'recipes', { name, base_portions: parseInt(base_portions), ingredients });
+        return res.data;
+    } catch (err) { return null; }
 }
 
 export async function deleteRecipe(name) {
-    if (!supabase) return false;
-    const { error } = await supabase.from('recipes').delete().eq('name', name);
-    return !error;
+    try {
+        await pf.db.delete(APP_NAME, 'recipes', { eq: [`name:${name}`] });
+        return true;
+    } catch (error) { return false; }
 }
