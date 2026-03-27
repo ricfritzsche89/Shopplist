@@ -3,7 +3,7 @@ import { PrivateFireClient } from './pf-sdk.js';
 // Konfiguriere deinen PrivateFire Client
 const pf = new PrivateFireClient({
   host: 'http://192.168.178.36',
-  apiKey: 'DEIN_API_SCHLUESSEL_HIER' // <-- Füge hier den API-Key aus deinem Dashboard ein
+  apiKey: 'pfk_e014d885d19842368f11d6dfdd8c4ecf' // <-- eingefügt
 });
 
 // App-Name für die Datenbank (muss exakt dem Namen im Dashboard entsprechen)
